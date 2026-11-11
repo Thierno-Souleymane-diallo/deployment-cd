@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'BACKEND_TAG', defaultValue: 'latest', description: 'Version de l image backend a deployer')
+    }
+
     environment {
         DB_PASSWORD = credentials('db-password')
         COMPOSE_PROJECT_NAME = 'sunusante'
@@ -25,16 +29,20 @@ pipeline {
         stage('Verifier la sante') {
             steps {
                 sh '''
-                    for i in $(seq 1 12); do
-                        STATUT=$(docker inspect -f '{{.State.Health.Status}}' sunusante-db-1)
-                        echo "Etat de la base : $STATUT"
-                        if [ "$STATUT" = "healthy" ]; then
-                            exit 0
-                        fi
-                        sleep 5
+                    for SERVICE in db backend; do
+                        for i in $(seq 1 18); do
+                            STATUT=$(docker inspect -f '{{.State.Health.Status}}' sunusante-$SERVICE-1)
+                            echo "Etat de $SERVICE : $STATUT"
+                            if [ "$STATUT" = "healthy" ]; then
+                                break
+                            fi
+                            if [ "$i" -eq 18 ]; then
+                                echo "$SERVICE n est pas en bonne sante apres 90 secondes"
+                                exit 1
+                            fi
+                            sleep 5
+                        done
                     done
-                    echo "La base n est pas en bonne sante apres 60 secondes"
-                    exit 1
                 '''
             }
         }
@@ -42,7 +50,7 @@ pipeline {
 
     post {
         success {
-            echo 'Deploiement de SunuSante reussi'
+            echo "Deploiement de SunuSante reussi (backend version ${params.BACKEND_TAG})"
         }
         failure {
             echo 'Echec du deploiement de SunuSante'
