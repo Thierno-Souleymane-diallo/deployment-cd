@@ -9,6 +9,9 @@ pipeline {
         DB_PASSWORD = credentials('db-password')
         COMPOSE_PROJECT_NAME = 'sunusante'
     }
+    triggers {
+        pollSCM('H/2 * * * *')
+    }
 
     stages {
         stage('Verifier la configuration') {
