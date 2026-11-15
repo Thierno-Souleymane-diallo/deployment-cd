@@ -62,7 +62,15 @@ pipeline {
                     echo "2. Nouvelles copies en bonne sante. Attente que Nginx les repere"
                     sleep 15
 
-                    echo "3. Arret des anciennes copies"
+                    echo "3. Retrait des anciennes copies de l annuaire"
+                    for C in $ANCIENS; do
+                        docker network disconnect sunusante_default $C
+                    done
+
+                    echo "Attente que Nginx oublie les anciennes adresses"
+                    sleep 12
+
+                    echo "4. Arret des anciennes copies"
                     docker stop $ANCIENS
                     docker rm $ANCIENS
                 '''
