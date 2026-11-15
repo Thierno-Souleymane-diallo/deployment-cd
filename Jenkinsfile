@@ -50,6 +50,11 @@ pipeline {
                         echo "Les nouvelles copies ne sont pas en bonne sante : annulation"
                         NOUVEAUX=$(docker ps -aq --filter label=com.docker.compose.project=sunusante --filter label=com.docker.compose.service=backend | grep -v -F "$ANCIENS")
                         [ -n "$NOUVEAUX" ] && docker rm -f $NOUVEAUX
+                        for C in $NOUVEAUX; do
+                            echo "===== Diagnostic de la copie $C ====="
+                            docker inspect -f 'Etat={{.State.Status}} OOMKilled={{.State.OOMKilled}} CodeSortie={{.State.ExitCode}}' $C
+                            docker logs --tail 40 $C
+                        done
                         echo "Les anciennes copies continuent de servir"
                         exit 1
                     fi

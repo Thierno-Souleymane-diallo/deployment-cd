@@ -19,11 +19,15 @@ services:
     restart: unless-stopped
     deploy:
       replicas: 2
+      resources:
+        limits:
+          memory: 512M
     environment:
       DB_HOST: db
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD:?Mot de passe DB_PASSWORD manquant}
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
     depends_on:
       db:
         condition: service_healthy
