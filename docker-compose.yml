@@ -17,6 +17,8 @@ services:
   backend:
     image: thiernosouleymanediallo/sunusante-backend:${BACKEND_TAG:-latest}
     restart: unless-stopped
+    deploy:
+      replicas: 2
     environment:
       DB_HOST: db
       DB_NAME: ${DB_NAME}
