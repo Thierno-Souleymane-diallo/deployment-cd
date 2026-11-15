@@ -31,6 +31,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 40s
+  frontend:
+    image: thiernosouleymanediallo/sunusante-frontend:${FRONTEND_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:

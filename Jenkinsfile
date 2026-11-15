@@ -3,6 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'BACKEND_TAG', defaultValue: 'latest', description: 'Version de l image backend a deployer')
+        string(name: 'FRONTEND_TAG', defaultValue: 'latest', description: 'Version de l image frontend a deployer')
     }
 
     environment {
@@ -32,7 +33,7 @@ pipeline {
         stage('Verifier la sante') {
             steps {
                 sh '''
-                    for SERVICE in db backend; do
+                    for SERVICE in db backend frontend; do
                         for i in $(seq 1 18); do
                             STATUT=$(docker inspect -f '{{.State.Health.Status}}' sunusante-$SERVICE-1)
                             echo "Etat de $SERVICE : $STATUT"
@@ -53,7 +54,7 @@ pipeline {
 
     post {
         success {
-            echo "Deploiement de SunuSante reussi (backend version ${params.BACKEND_TAG})"
+            echo "Deploiement de SunuSante reussi (backend ${params.BACKEND_TAG}, frontend ${params.FRONTEND_TAG})"
         }
         failure {
             echo 'Echec du deploiement de SunuSante'
