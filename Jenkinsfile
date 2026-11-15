@@ -45,21 +45,28 @@ pipeline {
                     NB=$(echo "$ANCIENS" | wc -l)
                     echo "Copies actuelles du backend : $NB"
 
-                    echo "1. Demarrage de 2 nouvelles copies a cote des anciennes"
-                    if ! docker compose up -d --no-deps --no-recreate --scale backend=$((NB + 2)) --wait --wait-timeout 150 backend; then
-                        echo "Les nouvelles copies ne sont pas en bonne sante : annulation"
+                    annuler() {
+                        echo "Une nouvelle copie n est pas en bonne sante : annulation"
                         NOUVEAUX=$(docker ps -aq --filter label=com.docker.compose.project=sunusante --filter label=com.docker.compose.service=backend | grep -v -F "$ANCIENS")
-                        [ -n "$NOUVEAUX" ] && docker rm -f $NOUVEAUX
                         for C in $NOUVEAUX; do
                             echo "===== Diagnostic de la copie $C ====="
-                            docker inspect -f 'Etat={{.State.Status}} OOMKilled={{.State.OOMKilled}} CodeSortie={{.State.ExitCode}}' $C
-                            docker logs --tail 40 $C
+                            docker inspect -f 'Etat={{.State.Status}} OOMKilled={{.State.OOMKilled}} CodeSortie={{.State.ExitCode}} Redemarrages={{.RestartCount}}' $C || true
+                            docker logs --tail 60 $C 2>&1 || true
+                            docker network disconnect sunusante_default $C || true
                         done
+                        sleep 12
+                        [ -n "$NOUVEAUX" ] && docker rm -f $NOUVEAUX
                         echo "Les anciennes copies continuent de servir"
                         exit 1
-                    fi
+                    }
 
-                    echo "2. Nouvelles copies en bonne sante. Attente que Nginx les repere"
+                    echo "1. Demarrage de la premiere nouvelle copie"
+                    docker compose up -d --no-deps --no-recreate --scale backend=$((NB + 1)) --wait --wait-timeout 150 backend || annuler
+
+                    echo "2. Demarrage de la deuxieme nouvelle copie"
+                    docker compose up -d --no-deps --no-recreate --scale backend=$((NB + 2)) --wait --wait-timeout 150 backend || annuler
+
+                    echo "Nouvelles copies en bonne sante. Attente que Nginx les repere"
                     sleep 15
 
                     echo "3. Retrait des anciennes copies de l annuaire"
